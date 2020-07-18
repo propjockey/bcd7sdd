@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<!--
+  Binary Coded Decimal 7 Segment Display Decoder
+  BSD 2-Clause License
+  Copyright (c) James0x57, PropJockey, 2020
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>CSS "Space Toggle" State Machine / Logic Demo</title>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/css-media-vars/css-media-vars.css">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-146833088-2"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'UA-146833088-2');
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    .bcd7sdd {
+      --smsize: var(--media-lte-sm) 300px;
+      --mdsize: var(--media-md-lg) 700px;
+      --size: var(--smsize, var(--mdsize, 900px));
+      display: grid;
+      grid-template-areas: "ssd ssd ssd ssd ssd" "A B C D empty" "Ac Bc Cc Dd empty";
+      width: var(--size);
+      grid-gap: 0px;
+      justify-content: space-around;
+      text-align: center;
+      font-family: "Lucida Sans", monospace;
+    }
+    .empty {
+      grid-area: empty;
+      width: calc(var(--size) * 0.7);
+    }
+    .bcd7sdd input {
+      margin-left: auto;
+      margin-right: auto;
+      cursor: pointer;
+    }
+    .bcd7sdd label {
+      font-size: calc(var(--size) / 15);
+      cursor: pointer;
+    }
+    .ssdd {
+      grid-area: ssd;
+      height: calc(var(--size) * 0.75);
+      width: var(--size);
+      background: black;
+      text-align: left;
+      position: relative;
+    }
+    svg {
+      height: calc(var(--size) * 0.75);
+      margin-left: calc(var(--size) / 30);
+    }
+    line { stroke-width: 3; }
+    .dream-in-digital {
+      position: absolute;
+      height: calc(var(--size) * 0.5);
+      width: calc(var(--size) * 0.33);
+      right: calc(var(--size) / 30);
+      top: calc(var(--size) * 0.25 / 2.7);
+      background: rgba(128, 0, 0, 0.33);
+      font-weight: bold;
+      font-size: calc(var(--size) / 20);
+    }
+    .dream-in-digital > span {
+      border-radius: calc(var(--size) / 15);
+      position: absolute;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: rgba(33, 0, 0, 0.25);
+    }
+    .a, .d, .g {
+      width: calc(var(--size) * 0.15);
+      height: calc(var(--size) * 0.05);
+      left: 50%;
+      line-height: calc(var(--size) / 25);
+    }
+    .a {
+      top: calc(var(--size) * 0.05);
+    }
+    .d {
+      top: calc(100% - var(--size) * 0.05);
+    }
+    .g {
+      top: 50%;
+    }
+    .b, .c, .e, .f {
+      width: calc(var(--size) * 0.05);
+      height: calc(var(--size) * 0.15);
+      line-height: calc(var(--size) / 8);
+    }
+    .b, .f {
+      top: 30%;
+    }
+    .c, .e {
+      top: 70%;
+    }
+    .b, .c {
+      left: calc(100% - var(--size) * 0.05);
+    }
+    .e, .f {
+      left: calc(var(--size) * 0.05);
+    }
+  </style>
+  <!-- logic here: -->
+  <style>
+    .ssdd {
+      --A: initial;
+      --NOT-A: ;
+      --B: initial;
+      --NOT-B: ;
+      --C: initial;
+      --NOT-C: ;
+      --D: initial;
+      --NOT-D: ;
+    }
+    .bcd7sdd input:nth-of-type(1):checked ~ .ssdd {
+      --A: ;
+      --NOT-A: initial;
+    }
+    .bcd7sdd input:nth-of-type(2):checked ~ .ssdd {
+      --B: ;
+      --NOT-B: initial;
+    }
+    .bcd7sdd input:nth-of-type(3):checked ~ .ssdd {
+      --C: ;
+      --NOT-C: initial;
+    }
+    .bcd7sdd input:nth-of-type(4):checked ~ .ssdd {
+      --D: ;
+      --NOT-D: initial;
+    }
+    .line-a-in {
+      --on: var(--A) gold;
+      stroke: var(--on, gray)
+    }
+    .line-b-in {
+      --on: var(--B) cyan;
+      stroke: var(--on, gray)
+    }
+    .line-not-b {
+      --on: var(--NOT-B) cyan;
+      stroke: var(--on, gray)
+    }
+    .line-c-in {
+      --on: var(--C) magenta;
+      stroke: var(--on, gray)
+    }
+    .line-not-c {
+      --on: var(--NOT-C) magenta;
+      stroke: var(--on, gray)
+    }
+    .line-d-in {
+      --on: var(--D) lime;
+      stroke: var(--on, gray)
+    }
+    .line-not-d {
+      --on: var(--NOT-D) lime;
+      stroke: var(--on, gray)
+    }
+    .ssdd {
+      --BD: var(--B) var(--D);
+      --nBnD: var(--NOT-B) var(--NOT-D);
+      --CD: var(--C) var(--D);
+      --nCnD: var(--NOT-C) var(--NOT-D);
+      --CnD: var(--C) var(--NOT-D);
+      --nBC: var(--NOT-B) var(--C);
+      --BnCD: var(--B) var(--NOT-C) var(--D);
+      --BnC: var(--B) var(--NOT-C);
+      --BnD: var(--B) var(--NOT-D);
+      --a: var(--A, var(--C, var(--BD, var(--nBnD))));
+      --b: var(--NOT-B, var(--nCnD, var(--CD)));
+      --c: var(--B, var(--NOT-C, var(--D)));
+      --d: var(--nBnD, var(--CnD, var(--BnCD, var(--nBC, var(--A)))));
+      --e: var(--nBnD, var(--CnD));
+      --f: var(--A, var(--nCnD, var(--BnC, var(--BnD))));
+      --g: var(--A, var(--BnC, var(--nBC, var(--CnD))));
+    }
+    .line-b-and-d {
+      --on: var(--BD) #8ee;
+      stroke: var(--on, gray);
+    }
+    .line-nb-and-nd {
+      --on: var(--nBnD) #ee8;
+      stroke: var(--on, gray);
+    }
+    .line-c-and-d {
+      --on: var(--CD) red;
+      stroke: var(--on, gray);
+    }
+    .line-nc-and-nd {
+      --on: var(--nCnD) brown;
+      stroke: var(--on, gray);
+    }
+    .line-c-and-nd {
+      --on: var(--CnD) blue;
+      stroke: var(--on, gray);
+    }
+    .line-nb-and-c {
+      --on: var(--nBC) purple;
+      stroke: var(--on, gray);
+    }
+    .line-b-and-nc-and-d {
+      --on: var(--BnCD) #0ff;
+      stroke: var(--on, gray);
+    }
+    .line-b-and-nc {
+      --on: var(--BnC) #0f8;
+      stroke: var(--on, gray);
+    }
+    .line-b-and-nd {
+      --on: var(--BnD) #80f;
+      stroke: var(--on, gray);
+    }
+    .line-a {
+      --on: var(--a) green;
+      stroke: var(--on, gray);
+    }
+    .line-b {
+      --on: var(--b) green;
+      stroke: var(--on, gray);
+    }
+    .line-c {
+      --on: var(--c) green;
+      stroke: var(--on, gray);
+    }
+    .line-d {
+      --on: var(--d) green;
+      stroke: var(--on, gray);
+    }
+    .line-e {
+      --on: var(--e) green;
+      stroke: var(--on, gray);
+    }
+    .line-f {
+      --on: var(--f) green;
+      stroke: var(--on, gray);
+    }
+    .line-g {
+      --on: var(--g) green;
+      stroke: var(--on, gray);
+    }
+    .a {
+      --on: var(--a) #e00;
+      background: var(--on, #380000);
+    }
+    .b {
+      --on: var(--b) #e00;
+      background: var(--on, #380000);
+    }
+    .c {
+      --on: var(--c) #e00;
+      background: var(--on, #380000);
+    }
+    .d {
+      --on: var(--d) #e00;
+      background: var(--on, #380000);
+    }
+    .e {
+      --on: var(--e) #e00;
+      background: var(--on, #380000);
+    }
+    .f {
+      --on: var(--f) #e00;
+      background: var(--on, #380000);
+    }
+    .g {
+      --on: var(--g) #e00;
+      background: var(--on, #380000);
+    }
+    .a, .b, .c, .d, .e, .f, .g {
+      box-shadow: 0px 0px 10px var(--on, black);
+    }
+  </style>
+</head>
+<body>
+  <h1>CSS Binary Coded Decimal 7 Segment Display Decoder</h1>
+  <p style="font-family: sans-serif; line-height: 1.5rem;">
+    SVG diagram, with actual binary logic powering the display state, implemented in vanilla CSS with the Space Toggle trick.<br>
+    <b>No JavaScript necessary.</b><br>
+    Follow me on twitter <a href="https://twitter.com/James0x57">@James0x57</a> for more web shenanigans<br>
+  </p>
+  <div class="bcd7sdd">
+    <label for="A">A</label>
+    <label for="B">B</label>
+    <label for="C">C</label>
+    <label for="D">D</label>
+    <input id="A" type="checkbox">
+    <input id="B" type="checkbox">
+    <input id="C" type="checkbox">
+    <input id="D" type="checkbox">
+    <span class="empty"></span>
+    <div class="ssdd">
+      <svg viewBox="0 0 440 552" xmlns="http://www.w3.org/2000/svg">
+        <line x1="6" y1="539" x2="6" y2="83" class="line-a-in" />
+        <line x1="6" y1="83" x2="314" y2="83" class="line-a-in" />
+        <line x1="314" y1="83" x2="314" y2="69" class="line-a-in" />
+        <line x1="314" y1="69" x2="354" y2="69" class="line-a-in" />
+        <line x1="6" y1="422" x2="288" y2="422" class="line-a-in" />
+        <line x1="288" y1="422" x2="288" y2="387" class="line-a-in" />
+        <line x1="288" y1="387" x2="368" y2="387" class="line-a-in" />
+        <line x1="6" y1="218" x2="310" y2="218" class="line-a-in" />
+        <line x1="310" y1="218" x2="310" y2="232" class="line-a-in" />
+        <line x1="310" y1="232" x2="365" y2="232" class="line-a-in" />
+        <line x1="6" y1="457" x2="372" y2="457" class="line-a-in" />
+        <line x1="34" y1="539" x2="34" y2="19" class="line-b-in" />
+        <line x1="34" y1="19" x2="260" y2="19" class="line-b-in" />
+        <line x1="34" y1="186" x2="369" y2="186" class="line-b-in" />
+        <line x1="34" y1="339" x2="212" y2="339" class="line-b-in" />
+        <line x1="34" y1="395" x2="212" y2="395" class="line-b-in" />
+        <line x1="34" y1="523" x2="62" y2="523" class="line-b-in" />
+        <line x1="62" y1="523" x2="62" y2="495" class="line-b-in" />
+        <line x1="62" y1="492" x2="62" y2="54" class="line-not-b" />
+        <line x1="62" y1="54" x2="262" y2="54" class="line-not-b" />
+        <line x1="62" y1="167" x2="307" y2="167" class="line-not-b" />
+        <line x1="307" y1="167" x2="307" y2="132" class="line-not-b" />
+        <line x1="307" y1="132" x2="356" y2="132" class="line-not-b" />
+        <line x1="62" y1="268" x2="259" y2="268" class="line-not-b" />
+        <line x1="90" y1="539" x2="90" y2="90" class="line-c-in" />
+        <line x1="90" y1="90" x2="322" y2="90" class="line-c-in" />
+        <line x1="322" y1="90" x2="322" y2="75" class="line-c-in" />
+        <line x1="322" y1="75" x2="352" y2="75" class="line-c-in" />
+        <line x1="90" y1="104" x2="262" y2="104" class="line-c-in" />
+        <line x1="90" y1="234" x2="262" y2="234" class="line-c-in" />
+        <line x1="90" y1="283" x2="262" y2="283" class="line-c-in" />
+        <line x1="90" y1="523" x2="118" y2="523" class="line-c-in" />
+        <line x1="118" y1="523" x2="118" y2="495" class="line-c-in" />
+        <line x1="118" y1="492" x2="118" y2="140" class="line-not-c" />
+        <line x1="118" y1="140" x2="262" y2="140" class="line-not-c" />
+        <line x1="118" y1="195" x2="369" y2="195" class="line-not-c" />
+        <line x1="118" y1="352" x2="212" y2="352" class="line-not-c" />
+        <line x1="146" y1="539" x2="146" y2="33" class="line-d-in" />
+        <line x1="146" y1="33" x2="262" y2="33" class="line-d-in" />
+        <line x1="146" y1="118" x2="262" y2="118" class="line-d-in" />
+        <line x1="146" y1="201" x2="368" y2="201" class="line-d-in" />
+        <line x1="146" y1="302" x2="279" y2="302" class="line-d-in" />
+        <line x1="146" y1="523" x2="174" y2="523" class="line-d-in" />
+        <line x1="174" y1="523" x2="174" y2="495" class="line-d-in" />
+        <line x1="174" y1="492" x2="174" y2="67" class="line-not-d" />
+        <line x1="174" y1="67" x2="262" y2="67" class="line-not-d" />
+        <line x1="174" y1="152" x2="262" y2="152" class="line-not-d" />
+        <line x1="174" y1="248" x2="262" y2="248" class="line-not-d" />
+        <line x1="174" y1="408" x2="213" y2="408" class="line-not-d" />
+        <line x1="276" y1="27" x2="315" y2="27" class="line-b-and-d" />
+        <line x1="315" y1="27" x2="315" y2="53" class="line-b-and-d" />
+        <line x1="315" y1="53" x2="350" y2="53" class="line-b-and-d" />
+        <line x1="280" y1="61" x2="353" y2="61" class="line-nb-and-nd" />
+        <line x1="330" y1="61" x2="330" y2="323" class="line-nb-and-nd" />
+        <line x1="330" y1="323" x2="377" y2="323" class="line-nb-and-nd" />
+        <line x1="330" y1="240" x2="361" y2="240" class="line-nb-and-nd" />
+        <line x1="279" y1="110" x2="315" y2="110" class="line-c-and-d" />
+        <line x1="315" y1="110" x2="315" y2="124" class="line-c-and-d" />
+        <line x1="315" y1="124" x2="355" y2="124" class="line-c-and-d" />
+        <line x1="279" y1="146" x2="315" y2="146" class="line-nc-and-nd" />
+        <line x1="315" y1="146" x2="315" y2="138" class="line-nc-and-nd" />
+        <line x1="315" y1="138" x2="355" y2="138" class="line-nc-and-nd" />
+        <line x1="336" y1="138" x2="336" y2="365" class="line-nc-and-nd" />
+        <line x1="336" y1="365" x2="363" y2="365" class="line-nc-and-nd" />
+        <line x1="279" y1="240" x2="295" y2="240" class="line-c-and-nd" />
+        <line x1="295" y1="240" x2="295" y2="246" class="line-c-and-nd" />
+        <line x1="295" y1="246" x2="367" y2="246" class="line-c-and-nd" />
+        <line x1="315" y1="246" x2="315" y2="442" class="line-c-and-nd" />
+        <line x1="315" y1="442" x2="369" y2="442" class="line-c-and-nd" />
+        <line x1="315" y1="311" x2="374" y2="311" class="line-c-and-nd" />
+        <line x1="279" y1="274" x2="300" y2="274" class="line-nb-and-c" />
+        <line x1="300" y1="254" x2="361" y2="254" class="line-nb-and-c" />
+        <line x1="300" y1="254" x2="300" y2="464" class="line-nb-and-c" />
+        <line x1="300" y1="464" x2="367" y2="464" class="line-nb-and-c" />
+        <line x1="294" y1="309" x2="309" y2="309" class="line-b-and-nc-and-d" />
+        <line x1="309" y1="309" x2="309" y2="260" class="line-b-and-nc-and-d" />
+        <line x1="309" y1="260" x2="361" y2="260" class="line-b-and-nc-and-d" />
+        <line x1="230" y1="345" x2="281" y2="345" class="line-b-and-nc" />
+        <line x1="281" y1="345" x2="281" y2="450" class="line-b-and-nc" />
+        <line x1="281" y1="450" x2="372" y2="450" class="line-b-and-nc" />
+        <line x1="281" y1="379" x2="363" y2="379" class="line-b-and-nc" />
+        <line x1="259" y1="345" x2="259" y2="317" class="line-b-and-nc" />
+        <line x1="259" y1="317" x2="273" y2="317" class="line-b-and-nc" />
+        <line x1="230" y1="400" x2="266" y2="400" class="line-b-and-nd" />
+        <line x1="266" y1="400" x2="266" y2="372" class="line-b-and-nd" />
+        <line x1="266" y1="372" x2="366" y2="372" class="line-b-and-nd" />
+        <line x1="373" y1="67" x2="416" y2="67" class="line-a" />
+        <line x1="370" y1="131" x2="416" y2="131" class="line-b" />
+        <line x1="380" y1="194" x2="416" y2="194" class="line-c" />
+        <line x1="380" y1="245" x2="416" y2="245" class="line-d" />
+        <line x1="389" y1="317" x2="416" y2="317" class="line-e" />
+        <line x1="386" y1="377" x2="416" y2="377" class="line-f" />
+        <line x1="392" y1="448" x2="416" y2="448" class="line-g" />
+
+        <circle cx="62" cy="476" r="3" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 47 501 l 15 -22 l 15 22 Z" stroke="white" stroke-width="2" fill="black" />
+        <circle cx="118" cy="476" r="3" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 103 501 l 15 -22 l 15 22 Z" stroke="white" stroke-width="2" fill="black" />
+        <circle cx="174" cy="476" r="3" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 159 501 l 15 -22 l 15 22 Z" stroke="white" stroke-width="2" fill="black" />
+
+        <path d="M 205 386 c 30 0, 30 28, 0 28 Z" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 209 331 c 30 0, 30 28, 0 28 Z" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 270 296 c 30 0, 30 28, 0 28 Z" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 256 261 c 30 0, 30 28, 0 28 Z" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 256 226 c 30 0, 30 28, 0 28 Z" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 256 131 c 30 0, 30 28, 0 28 Z" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 256 96 c 30 0, 30 28, 0 28 Z" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 256 47 c 30 0, 30 28, 0 28 Z" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 256 11 c 30 0, 30 28, 0 28 Z" stroke="white" stroke-width="2" fill="black" />
+
+        <path d="M 361 429 c 40 10, 40 30, 0 40 c 10 -10, 10 -30, 0 -40" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 356 356 c 40 10, 40 30, 0 40 c 10 -10, 10 -30, 0 -40" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 368 297 c 40 10, 40 30, 0 40 c 10 -10, 10 -30, 0 -40" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 355 225 c 40 10, 40 30, 0 40 c 10 -10, 10 -30, 0 -40" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 355 174 c 40 10, 40 30, 0 40 c 10 -10, 10 -30, 0 -40" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 347 112 c 40 10, 40 30, 0 40 c 10 -10, 10 -30, 0 -40" stroke="white" stroke-width="2" fill="black" />
+        <path d="M 347 46 c 40 10, 40 30, 0 40 c 10 -10, 10 -30, 0 -40" stroke="white" stroke-width="2" fill="black" />
+
+        <text x="10" y="537" style="font: 13px sans-serif;" fill="white">A</text>
+        <text x="46" y="537" style="font: 13px sans-serif;" fill="white">B</text>
+        <text x="102" y="537" style="font: 13px sans-serif;" fill="white">C</text>
+        <text x="158" y="537" style="font: 13px sans-serif;" fill="white">D</text>
+
+        <text x="423" y="70" style="font: 13px sans-serif;" fill="white">a</text>
+        <text x="423" y="135" style="font: 13px sans-serif;" fill="white">b</text>
+        <text x="423" y="196" style="font: 13px sans-serif;" fill="white">c</text>
+        <text x="423" y="252" style="font: 13px sans-serif;" fill="white">d</text>
+        <text x="423" y="320" style="font: 13px sans-serif;" fill="white">e</text>
+        <text x="423" y="380" style="font: 13px sans-serif;" fill="white">f</text>
+        <text x="423" y="450" style="font: 13px sans-serif;" fill="white">g</text>
+      </svg>
+      <div class="dream-in-digital">
+        <span class="a">a</span>
+        <span class="b">b</span>
+        <span class="c">c</span>
+        <span class="d">d</span>
+        <span class="e">e</span>
+        <span class="f">f</span>
+        <span class="g">g</span>
+      </div>
+    </div>
+  </div>
+  <p style="font-family: sans-serif; line-height: 1.5rem; margin: 2rem 0px;">
+    Shout-out to <a href="https://twitter.com/RockStarwind/status/1284322826258915328">@RockStarwind</a> for the idea to use checkboxes as an exploratory source for Space Toggle variables. I've been up all night building this as a result! :3<br>
+    <br>
+    <br>
+    Check out the source code here: <a href="https://github.com/propjockey/bcd7sdd">https://github.com/propjockey/bcd7sdd</a> and tweet at me if you want to ask questions or chat! <a href="https://twitter.com/James0x57">@James0x57</a>
+  </p>
+  <h2>Space Toggle</h2>
+  <p style="font-family: sans-serif; line-height: 1.5rem;">
+    This state machine is built in CSS with a trick called "Space Toggle" discovered to kick off the development of <a href="http://augmented-ui.com/">augmented-ui</a> v2 in April 2020. (though unknown to me, it was previously discovered by <a href="https://twitter.com/anatudor">@anatudor</a> about 3 years ago, so credit where due!) You can read more about Space Toggle in these tweets which contain links to JSBins you can explore further with:<br>
+    <a href="https://twitter.com/James0x57/status/1283596399196680192">Second Tweet, a simple demo</a><br>
+    <a href="https://twitter.com/James0x57/status/1282303255826046977">First Tweet, an advanced demo</a><br>
+    Or checkout how Space Toggle is used to make responsive, vanilla, CSS much easier in <a href="https://propjockey.github.io/css-media-vars/">css-media-vars</a> for some more real-world example useage!<br>
+  </p>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+</body>
+</html>
